@@ -1,118 +1,85 @@
-
-local findedObjMap = nil 
-
-function _G.findObject(obj, findDest)
-
-    if findDest == nil then
-
-        return false
-
+function find_object(obj, target)
+    -- body
+    if target == nil then
+        return false;
     end
-
-    if findedObjMap[findDest] ~= nil then
-
-        return false
-
+    if target == weak_table then
+        return false;
     end
-
-    findedObjMap[findDest] = true
-
- 
-
-    local destType = type(findDest)
-
-    if destType == "table" then
-
-        if findDest == _G.CMemoryDebug then
-
-            return false
-
+    -- 表明已经查找过了
+    if finded_table[target] ~= nil then
+        return false;
+    end
+    finded_table[target] = true;
+    local target_type = type(target);
+    if target_type == "table" then
+        for k,v in pairs(target) do
+            if k == obj or v == obj then
+                sprint("v = "..tostring(v));
+                sprint("k = "..tostring(k));
+                return true;
+            end
+            if find_object(obj, k) == true then
+                sprint("table key");
+                return true;
+            end
+            if find_object(obj, v) == true then
+                sprint("k = "..tostring(k));
+                return true;
+            end
         end
-
-        for key, value in pairs(findDest) do
-
-            if key == obj or value == obj then
-
-                _info("Finded Object")
-
-                return true
-
-            end
-
-            if findObject(obj, key) == true then
-
-                _info("table key")
-
-                return true
-
-            end
-
-            if findObject(obj, value) == true then
-
-                _info("key:["..tostring(key).."]")
-
-                return true
-
-            end
-
-        end
-
-    elseif destType == "function" then
-
-        local uvIndex = 1
-
+    elseif target_type == "function" then
+        local uv_index = 1;
         while true do
-
-            local name, value = debug.getupvalue(findDest, uvIndex)
-
+            local name, value = debug.getupvalue(target, uv_index);
             if name == nil then
-
-                break
-
+                break;
             end
-
-            if findObject(obj, value) == true then
-
-                _info("upvalue name:["..tostring(name).."]")
-
-                return true
-
+            if find_object(obj, value) == true then
+                sprint("upvalue name:["..tostring(name).."]");
+                return true;
             end
-
-            uvIndex = uvIndex + 1
-
+            uv_index = uv_index + 1;
         end
-
     end
-
-    return false
-
+    return false;
 end
 
- 
-
-function _G.findObjectInGlobal(obj)
-
-    findedObjMap = {}
-
-    setmetatable(findedObjMap, {__mode = "k"})
-
-    _G.findObject(obj, _G)
-
+function print_object(obj)
+    -- body
+    finded_table = {};
+    find_object(obj, _G);
+    finded_table = {};
 end
 
 weak_table = {};
-setmetatable(weak_table, {_mode = "k",});
-local fun = smgr:load_lib;
-function smgr:load_lib(...)
+setmetatable(weak_table, {__mode = "k",});
+
+local fun = smanager.load_lib;
+function smanager.load_lib(...)
     -- body
     local hand = fun(...);
-    for k,v in pairs(get_all_nots(hand)) do
-        weak_table[v] = true;
-    end
+    weak_table[hand] = true;
     return hand;
 end
-collectgarbage();
-for k,v in pairs(weak_table) do
-    _G.findObjectInGlobal(k);
+
+local fun = sbase_find;
+function sbase_find(...)
+    -- body
+    local hand = fun(...);
+    weak_table[hand] = true;
+    return hand;
+end
+
+function print_all_object()
+    -- body
+    collectgarbage();
+    sprint("print all object\n");
+    for k,v in pairs(weak_table) do
+        sprint(tostring(k:get_name()));
+        print_object(k);
+        sprint("\n");
+        -- sprint(tostring(k));
+    end
+    sprint("print all object end");
 end
